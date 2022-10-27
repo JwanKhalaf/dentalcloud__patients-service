@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type PatientStore struct {
@@ -42,18 +41,22 @@ func NewPatientStore() *PatientStore {
 }
 
 func (p *PatientStore) GetPatient(ctx context.Context, patientID string) (Patient, error) {
-	response, err := p.client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String(p.tableName),
-		Key: map[string]types.AttributeValue{
-			"pk": &types.AttributeValueMemberS{Value: patientID},
-		},
+	patient := Patient{PatientID: patientID}
+	response, err := p.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		Key: patient.GetKey(), TableName: aws.String(p.tableName),
 	})
 	if err != nil {
-		return Patient{}, fmt.Errorf("could not get item from the dynamodb table: %w", err)
-	}
+		log.Printf("could not get find patient with id %q, here is why: %v\n", patientID, err)
+	} else {
+		if len(response.Item) == 0 {
+			return Patient{}, fmt.Errorf("could not find patient with id %q in the database", patientID)
+		}
 
-	var patient Patient
-	err = attributevalue.UnmarshalMap(response.Item, &patient)
+		err = attributevalue.UnmarshalMap(response.Item, &patient)
+		if err != nil {
+			log.Printf("could not unmarshal response, here is why: %v\n", err)
+		}
+	}
 
 	return patient, err
 }

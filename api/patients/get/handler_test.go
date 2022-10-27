@@ -28,7 +28,7 @@ func TestGetPatient(t *testing.T) {
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			getPatient: func(ctx context.Context, patientID string) (patients.Patient, error) {
+			getPatient: func(_ context.Context, patientID string) (patients.Patient, error) {
 				if patientID != requestedPatientID {
 					t.Errorf("%q was passed to GetPatient() but the expected value was %q", patientID, requestedPatientID)
 				}
@@ -56,7 +56,7 @@ func TestGetPatient(t *testing.T) {
 		expectedPatient := patients.Patient{PatientID: "test_patient_id", FirstName: "Jane", LastName: "Doe"}
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			getPatient: func(ctx context.Context, patientID string) (patients.Patient, error) {
+			getPatient: func(_ context.Context, patientID string) (patients.Patient, error) {
 				if patientID != requestedPatientID {
 					t.Errorf("%q was passed to GetPatient() but the expected value was %q", patientID, requestedPatientID)
 				}

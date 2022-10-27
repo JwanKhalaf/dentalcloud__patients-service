@@ -14,7 +14,7 @@ const jsonContentType string = "application/json"
 
 func GetPatientHandler(repository patients.PatientRepository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("running the get patient handler!")
+		log.Println("running the get patient handler...")
 
 		patientID := strings.TrimPrefix(r.URL.Path, "/patients/")
 

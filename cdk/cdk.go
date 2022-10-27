@@ -33,6 +33,9 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 		PartitionKey: &awsdynamodb.Attribute{
 			Name: jsii.String("pk"),
 			Type: awsdynamodb.AttributeType_STRING},
+		SortKey: &awsdynamodb.Attribute{
+			Name: jsii.String("sk"),
+			Type: awsdynamodb.AttributeType_STRING},
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
@@ -59,7 +62,7 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 
 	// add route for getting patient
 	patientsApi.AddRoutes(&awscdkapigatewayv2alpha.AddRoutesOptions{
-		Path:    jsii.String("/patients"),
+		Path:    jsii.String("/patients/{patient-id}"),
 		Methods: &[]awscdkapigatewayv2alpha.HttpMethod{awscdkapigatewayv2alpha.HttpMethod_GET},
 		Integration: awscdkapigatewayv2integrationsalpha.NewHttpLambdaIntegration(jsii.String("getPatientLambdaIntegration"), getPatientHandler, &awscdkapigatewayv2integrationsalpha.HttpLambdaIntegrationProps{
 			PayloadFormatVersion: awscdkapigatewayv2alpha.PayloadFormatVersion_VERSION_2_0(),
