@@ -39,6 +39,13 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
+	// add a global secondary index based on first_name
+	table.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
+		IndexName:    jsii.String("name-index"),
+		PartitionKey: &awsdynamodb.Attribute{Name: jsii.String("first_name"), Type: awsdynamodb.AttributeType_STRING},
+		SortKey:      &awsdynamodb.Attribute{Name: jsii.String("last_name"), Type: awsdynamodb.AttributeType_STRING},
+	})
+
 	// bundling options to make go fast
 	bundlingOptions := &awscdklambdagoalpha.BundlingOptions{
 		GoBuildFlags: &[]*string{jsii.String(`-ldflags "-s -w" -tags lambda.norpc`)},
