@@ -41,9 +41,11 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 
 	// add a global secondary index based on first_name
 	table.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
-		IndexName:    jsii.String("name-index"),
-		PartitionKey: &awsdynamodb.Attribute{Name: jsii.String("first_name"), Type: awsdynamodb.AttributeType_STRING},
-		SortKey:      &awsdynamodb.Attribute{Name: jsii.String("last_name"), Type: awsdynamodb.AttributeType_STRING},
+		IndexName:        jsii.String("name-index"),
+		PartitionKey:     &awsdynamodb.Attribute{Name: jsii.String("pk"), Type: awsdynamodb.AttributeType_STRING},
+		SortKey:          &awsdynamodb.Attribute{Name: jsii.String("st"), Type: awsdynamodb.AttributeType_STRING},
+		NonKeyAttributes: jsii.Strings("e", "mp", "dob", "pc"),
+		ProjectionType:   awsdynamodb.ProjectionType_INCLUDE,
 	})
 
 	// bundling options to make go fast
