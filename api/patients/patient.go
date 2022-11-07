@@ -38,6 +38,17 @@ type Patient struct {
 	ModifiedAt                        string `dynamodbav:"ma" json:"modified_at"`
 }
 
+type PatientSearchResponseItem struct {
+	PatientID   string `dynamodbav:"sk" json:"patient_id"`
+	FirstName   string `dynamodbav:"fn" json:"first_name"`
+	MiddleName  string `dynamodbav:"mn" json:"middle_name"`
+	LastName    string `dynamodbav:"ln" json:"last_name"`
+	DateOfBirth string `dynamodbav:"dob" json:"date_of_birth"`
+	Email       string `dynamodbav:"e" json:"email"`
+	MobilePhone string `dynamodbav:"mp" json:"mobile_phone"`
+	PostCode    string `dynamodbav:"pc" json:"post_code"`
+}
+
 // returns the composite primary key of the patient in a format that can be
 // sent to dynamo.
 func (p Patient) GetKey() map[string]types.AttributeValue {

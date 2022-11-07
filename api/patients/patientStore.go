@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/jsii-runtime-go"
 )
 
 type PatientStore struct {
@@ -19,6 +22,7 @@ type PatientStore struct {
 
 type PatientRepository interface {
 	GetPatient(ctx context.Context, patientID string) (Patient, error)
+	SearchPatients(ctx context.Context, searchTerm string) ([]PatientSearchResponseItem, error)
 }
 
 func NewPatientStore() *PatientStore {
@@ -59,4 +63,33 @@ func (p *PatientStore) GetPatient(ctx context.Context, patientID string) (Patien
 	}
 
 	return patient, err
+}
+
+func (p *PatientStore) SearchPatients(ctx context.Context, searchTerm string) ([]PatientSearchResponseItem, error) {
+	dentalPracticeId := "dp#1"
+	lowerCaseSearchTerm := strings.ToLower(searchTerm)
+	var patients []PatientSearchResponseItem
+	response, err := p.client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:              aws.String(p.tableName),
+		IndexName:              jsii.String("name-index"),
+		KeyConditionExpression: jsii.String("pk = :dpid and begins_with(st, :st)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":dpid": &types.AttributeValueMemberS{Value: dentalPracticeId},
+			":st":   &types.AttributeValueMemberS{Value: lowerCaseSearchTerm},
+		},
+	})
+	if err != nil {
+		log.Printf("could not get find patient with id %q, here is why: %v\n", searchTerm, err)
+	} else {
+		if len(response.Items) == 0 {
+			return patients, nil
+		}
+
+		err = attributevalue.UnmarshalListOfMaps(response.Items, &patients)
+		if err != nil {
+			log.Printf("could not unmarshal response, here is why: %v\n", err)
+		}
+	}
+
+	return patients, err
 }
