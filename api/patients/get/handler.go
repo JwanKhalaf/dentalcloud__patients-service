@@ -2,36 +2,36 @@ package get
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients"
+	"go.uber.org/zap"
 )
 
 const contentTypeHeader string = "content-type"
 const jsonContentType string = "application/json"
 
-func GetPatientHandler(repository patients.PatientRepository) http.Handler {
+func GetPatientHandler(logger *zap.Logger, repository patients.PatientRepository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("running the get patient handler...")
+		logger.Info("running the get patient handler...")
 
 		patientID := strings.TrimPrefix(r.URL.Path, "/patients/")
 
-		log.Printf("requested patient id is %q", patientID)
+		logger.Info("requested patient", zap.String("patientID", patientID))
 
 		w.Header().Set(contentTypeHeader, jsonContentType)
 
 		patient, err := repository.GetPatient(r.Context(), patientID)
 		if err != nil {
-			log.Printf("failed to get patient: %v", err)
+			logger.Error("failed to get patient", zap.String("patientID", patientID), zap.String("err", err.Error()))
 			http.Error(w, "requested patient could not be found", http.StatusNotFound)
 			return
 		}
 
 		err = json.NewEncoder(w).Encode(patient)
 		if err != nil {
-			log.Printf("error in json marshal: %v", err)
+			logger.Error("error in json marshal", zap.String("patientID", patientID), zap.String("err", err.Error()))
 		}
 
 		w.WriteHeader(http.StatusOK)
