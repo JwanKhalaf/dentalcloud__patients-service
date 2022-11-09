@@ -34,12 +34,13 @@ type Patient struct {
 	AcquisitionSource                 string `dynamodbav:"as" json:"acquisition_source"`
 	AssignedDentist                   string `dynamodbav:"ad" json:"assigned_dentist"`
 	AssignedHygienist                 string `dynamodbav:"ah" json:"assigned_hygienist"`
+	Active                            bool   `dynamodbav:"a" json:"active"`
 	CreatedAt                         string `dynamodbav:"ca" json:"created_at"`
 	ModifiedAt                        string `dynamodbav:"ma" json:"modified_at"`
 }
 
 type PatientSearchResponseItem struct {
-	PatientID   string `dynamodbav:"sk" json:"patient_id"`
+	PatientID   string `dynamodbav:"pid" json:"patient_id"`
 	FirstName   string `dynamodbav:"fn" json:"first_name"`
 	MiddleName  string `dynamodbav:"mn" json:"middle_name"`
 	LastName    string `dynamodbav:"ln" json:"last_name"`
@@ -56,9 +57,11 @@ func (p Patient) GetKey() map[string]types.AttributeValue {
 	if err != nil {
 		panic(err)
 	}
-	dentalPracticeID, err := attributevalue.Marshal(fmt.Sprintf("dp#%v", 1))
+
+	dentalPracticeID, err := attributevalue.Marshal(fmt.Sprintf("dp#%v", "c9ec3cfe-9f2c-4d68-aec6-9c6a43bf9aec"))
 	if err != nil {
 		panic(err)
 	}
-	return map[string]types.AttributeValue{"pk": dentalPracticeID, "sk": patientID}
+
+	return map[string]types.AttributeValue{"_pk": dentalPracticeID, "_sk": patientID}
 }

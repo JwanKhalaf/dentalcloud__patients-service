@@ -31,20 +31,20 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 	// create a dynamodb table
 	table := awsdynamodb.NewTable(stack, jsii.String("dentalcloud"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
-			Name: jsii.String("pk"),
+			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING},
 		SortKey: &awsdynamodb.Attribute{
-			Name: jsii.String("sk"),
+			Name: jsii.String("_sk"),
 			Type: awsdynamodb.AttributeType_STRING},
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
-	// add a global secondary index based on first_name
+	// add a global secondary index based on name
 	table.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
 		IndexName:        jsii.String("name-index"),
-		PartitionKey:     &awsdynamodb.Attribute{Name: jsii.String("pk"), Type: awsdynamodb.AttributeType_STRING},
+		PartitionKey:     &awsdynamodb.Attribute{Name: jsii.String("_pk"), Type: awsdynamodb.AttributeType_STRING},
 		SortKey:          &awsdynamodb.Attribute{Name: jsii.String("st"), Type: awsdynamodb.AttributeType_STRING},
-		NonKeyAttributes: jsii.Strings("fn", "md", "ln", "e", "mp", "dob", "pc"),
+		NonKeyAttributes: jsii.Strings("pid", "fn", "mn", "ln", "e", "mp", "dob", "pc"),
 		ProjectionType:   awsdynamodb.ProjectionType_INCLUDE,
 	})
 

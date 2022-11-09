@@ -66,20 +66,24 @@ func (p *PatientStore) GetPatient(ctx context.Context, patientID string) (Patien
 }
 
 func (p *PatientStore) SearchPatients(ctx context.Context, searchTerm string) ([]PatientSearchResponseItem, error) {
-	dentalPracticeId := "dp#1"
+	dentalPracticeId := "dp#c9ec3cfe-9f2c-4d68-aec6-9c6a43bf9aec"
 	lowerCaseSearchTerm := strings.ToLower(searchTerm)
 	var patients []PatientSearchResponseItem
 	response, err := p.client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:              aws.String(p.tableName),
 		IndexName:              jsii.String("name-index"),
-		KeyConditionExpression: jsii.String("pk = :dpid and begins_with(st, :st)"),
+		KeyConditionExpression: jsii.String("#_pk = :dpid and begins_with(#st, :st)"),
+		ExpressionAttributeNames: map[string]string{
+			"#_pk": "_pk",
+			"#st":  "st",
+		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":dpid": &types.AttributeValueMemberS{Value: dentalPracticeId},
 			":st":   &types.AttributeValueMemberS{Value: lowerCaseSearchTerm},
 		},
 	})
 	if err != nil {
-		log.Printf("could not get find patient with id %q, here is why: %v\n", searchTerm, err)
+		log.Printf("could not get find patients matching %q, here is why: %v\n", searchTerm, err)
 	} else {
 		if len(response.Items) == 0 {
 			return patients, nil
