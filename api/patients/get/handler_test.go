@@ -12,28 +12,32 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients"
+	"go.uber.org/zap"
 )
 
 type StubPatientStore struct {
-	getPatient     func(ctx context.Context, patientID string) (patients.Patient, error)
-	searchPatients func(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
+	getPatient     func(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error)
+	searchPatients func(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
 }
 
-func (s *StubPatientStore) GetPatient(ctx context.Context, patientID string) (patients.Patient, error) {
-	return s.getPatient(ctx, patientID)
+func (s *StubPatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error) {
+	return s.getPatient(logger, ctx, patientID)
 }
 
-func (s *StubPatientStore) SearchPatients(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
-	return s.searchPatients(ctx, searchTerm)
+func (s *StubPatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+	return s.searchPatients(logger, ctx, searchTerm)
 }
 
 func TestGetPatient(t *testing.T) {
+	// create the logger
+	logger, _ := zap.NewProduction()
+
 	t.Run("return 404 when requested patient does not exist", func(t *testing.T) {
 		requestedPatientID := "test_patient_id"
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			getPatient: func(_ context.Context, patientID string) (patients.Patient, error) {
+			getPatient: func(_ *zap.Logger, _ context.Context, patientID string) (patients.Patient, error) {
 				if patientID != requestedPatientID {
 					t.Errorf("%q was passed to GetPatient() but the expected value was %q", patientID, requestedPatientID)
 				}
@@ -49,7 +53,7 @@ func TestGetPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get the handler
-		handler := GetPatientHandler(&patientStore)
+		handler := GetPatientHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
@@ -62,9 +66,10 @@ func TestGetPatient(t *testing.T) {
 	t.Run("return 200 along with the patient details when requested patient does exist", func(t *testing.T) {
 		requestedPatientID := "test_patient_id"
 		expectedPatient := patients.Patient{PatientID: "test_patient_id", FirstName: "Jane", LastName: "Doe"}
+
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			getPatient: func(_ context.Context, patientID string) (patients.Patient, error) {
+			getPatient: func(_ *zap.Logger, _ context.Context, patientID string) (patients.Patient, error) {
 				if patientID != requestedPatientID {
 					t.Errorf("%q was passed to GetPatient() but the expected value was %q", patientID, requestedPatientID)
 				}
@@ -80,7 +85,7 @@ func TestGetPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get handler
-		handler := GetPatientHandler(&patientStore)
+		handler := GetPatientHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
