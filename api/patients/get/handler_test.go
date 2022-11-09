@@ -15,11 +15,16 @@ import (
 )
 
 type StubPatientStore struct {
-	getPatient func(ctx context.Context, patientID string) (patients.Patient, error)
+	getPatient     func(ctx context.Context, patientID string) (patients.Patient, error)
+	searchPatients func(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
 }
 
 func (s *StubPatientStore) GetPatient(ctx context.Context, patientID string) (patients.Patient, error) {
 	return s.getPatient(ctx, patientID)
+}
+
+func (s *StubPatientStore) SearchPatients(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+	return s.searchPatients(ctx, searchTerm)
 }
 
 func TestGetPatient(t *testing.T) {
@@ -43,8 +48,11 @@ func TestGetPatient(t *testing.T) {
 		// create a response recorder
 		res := httptest.NewRecorder()
 
+		// get the handler
 		handler := GetPatientHandler(&patientStore)
 
+		// our handler satisfies http.handler, so we can call its serve http method
+		// directly and pass in our request and response recorder
 		handler.ServeHTTP(res, req)
 
 		// assert status code is what we expect
@@ -81,11 +89,11 @@ func TestGetPatient(t *testing.T) {
 		// decode the json response into []tasks.Task
 		got := getPatientFromResponse(t, res.Body)
 
-		// check the response body is what we expect
-		assertPatient(t, got, expectedPatient)
-
 		// assert status code is what we expect
 		assertStatusCode(t, res.Code, http.StatusOK)
+
+		// check the response body is what we expect
+		assertPatient(t, got, expectedPatient)
 	})
 }
 

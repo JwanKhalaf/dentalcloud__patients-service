@@ -6,14 +6,14 @@ import (
 
 	"github.com/akrylysov/algnhsa"
 	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients"
-	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients/get"
+	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients/search"
 )
 
 func main() {
-	log.Println("running the get patient lambda...")
+	log.Println("running the search patients lambda...")
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/", get.GetPatientHandler(patients.NewPatientStore()))
+	mux.Handle("/", search.SearchPatientsHandler(patients.NewPatientStore()))
 	algnhsa.ListenAndServe(mux, nil)
 }

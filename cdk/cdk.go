@@ -31,19 +31,21 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 	// create a dynamodb table
 	table := awsdynamodb.NewTable(stack, jsii.String("dentalcloud"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
-			Name: jsii.String("pk"),
+			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING},
 		SortKey: &awsdynamodb.Attribute{
-			Name: jsii.String("sk"),
+			Name: jsii.String("_sk"),
 			Type: awsdynamodb.AttributeType_STRING},
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
-	// add a global secondary index based on first_name
+	// add a global secondary index based on name
 	table.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
-		IndexName:    jsii.String("name-index"),
-		PartitionKey: &awsdynamodb.Attribute{Name: jsii.String("first_name"), Type: awsdynamodb.AttributeType_STRING},
-		SortKey:      &awsdynamodb.Attribute{Name: jsii.String("last_name"), Type: awsdynamodb.AttributeType_STRING},
+		IndexName:        jsii.String("name-index"),
+		PartitionKey:     &awsdynamodb.Attribute{Name: jsii.String("_pk"), Type: awsdynamodb.AttributeType_STRING},
+		SortKey:          &awsdynamodb.Attribute{Name: jsii.String("st"), Type: awsdynamodb.AttributeType_STRING},
+		NonKeyAttributes: jsii.Strings("pid", "fn", "mn", "ln", "e", "mp", "dob", "pc"),
+		ProjectionType:   awsdynamodb.ProjectionType_INCLUDE,
 	})
 
 	// bundling options to make go fast
@@ -64,6 +66,19 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 	// grant dynamodb read write permissions to the get patient lambda
 	table.GrantReadWriteData(getPatientHandler)
 
+	// creating the aws lambda for getting a patient
+	searchPatientsHandler := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("SearchPatientsFunction"), &awscdklambdagoalpha.GoFunctionProps{
+		Architecture: awslambda.Architecture_ARM_64(),
+		Entry:        jsii.String("../api/patients/search/lambda"),
+		Environment:  &map[string]*string{"DYNAMODB_TABLENAME": table.TableName()},
+		Bundling:     bundlingOptions,
+		MemorySize:   jsii.Number(1024),
+		Timeout:      awscdk.Duration_Millis(jsii.Number(15000)),
+	})
+
+	// grant dynamodb read write permissions to the get patient lambda
+	table.GrantReadWriteData(searchPatientsHandler)
+
 	// create a new http patientsApi gateway
 	patientsApi := awscdkapigatewayv2alpha.NewHttpApi(stack, jsii.String("PatientsApi"), &awscdkapigatewayv2alpha.HttpApiProps{})
 
@@ -72,6 +87,15 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 		Path:    jsii.String("/patients/{patient-id}"),
 		Methods: &[]awscdkapigatewayv2alpha.HttpMethod{awscdkapigatewayv2alpha.HttpMethod_GET},
 		Integration: awscdkapigatewayv2integrationsalpha.NewHttpLambdaIntegration(jsii.String("getPatientLambdaIntegration"), getPatientHandler, &awscdkapigatewayv2integrationsalpha.HttpLambdaIntegrationProps{
+			PayloadFormatVersion: awscdkapigatewayv2alpha.PayloadFormatVersion_VERSION_2_0(),
+		}),
+	})
+
+	// add route for searching patients
+	patientsApi.AddRoutes(&awscdkapigatewayv2alpha.AddRoutesOptions{
+		Path:    jsii.String("/patients"),
+		Methods: &[]awscdkapigatewayv2alpha.HttpMethod{awscdkapigatewayv2alpha.HttpMethod_GET},
+		Integration: awscdkapigatewayv2integrationsalpha.NewHttpLambdaIntegration(jsii.String("searchPatientsLambdaIntegration"), searchPatientsHandler, &awscdkapigatewayv2integrationsalpha.HttpLambdaIntegrationProps{
 			PayloadFormatVersion: awscdkapigatewayv2alpha.PayloadFormatVersion_VERSION_2_0(),
 		}),
 	})
