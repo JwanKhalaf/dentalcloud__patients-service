@@ -24,16 +24,20 @@ func SearchPatientsHandler(logger *zap.Logger, repository patients.PatientReposi
 			return
 		}
 
-		searchResults, err := repository.SearchPatients(logger, r.Context(), v[0])
+		searchTerm := v[0]
+
+		logger = logger.With(zap.String("searchTerm", searchTerm))
+
+		searchResults, err := repository.SearchPatients(logger, r.Context(), searchTerm)
 		if err != nil {
-			logger.Error("failed to search patients", zap.String("searchTerm", v[0]), zap.String("err", err.Error()))
+			logger.Error("failed to search patients", zap.Error(err))
 			http.Error(w, "requested patient could not be found", http.StatusNotFound)
 			return
 		}
 
 		err = json.NewEncoder(w).Encode(searchResults)
 		if err != nil {
-			logger.Error("error in json marshal", zap.String("err", err.Error()))
+			logger.Error("error in json marshal", zap.Error(err))
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -35,7 +35,7 @@ func NewPatientStore(logger *zap.Logger) *PatientStore {
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		logger.Fatal("unable to load sdk config", zap.String("err", err.Error()))
+		logger.Fatal("unable to load sdk config", zap.Error(err))
 	}
 
 	return &PatientStore{
@@ -45,13 +45,13 @@ func NewPatientStore(logger *zap.Logger) *PatientStore {
 }
 
 func (p *PatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (Patient, error) {
-	logger.Info("getting patient", zap.String("patientID", patientID))
+	logger.Info("getting patient")
 	patient := Patient{PatientID: patientID}
 	response, err := p.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		Key: patient.GetKey(), TableName: aws.String(p.tableName),
 	})
 	if err != nil {
-		logger.Error("could not get find matching patient", zap.String("patientID", patientID), zap.String("err", err.Error()))
+		logger.Error("could not get find matching patient", zap.Error(err))
 	} else {
 		if len(response.Item) == 0 {
 			return Patient{}, fmt.Errorf("could not find patient with id %q in the database", patientID)
@@ -59,7 +59,7 @@ func (p *PatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patie
 
 		err = attributevalue.UnmarshalMap(response.Item, &patient)
 		if err != nil {
-			logger.Error("could not unmarshal response", zap.String("err", err.Error()))
+			logger.Error("could not unmarshal response", zap.Error(err))
 		}
 	}
 
@@ -68,8 +68,8 @@ func (p *PatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patie
 
 func (p *PatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, searchTerm string) ([]PatientSearchResponseItem, error) {
 	dentalPracticeID := "c9ec3cfe-9f2c-4d68-aec6-9c6a43bf9aec"
-	logger.Info("searching patients", zap.String("dentalPracticeID", dentalPracticeID), zap.String("searchTerm", searchTerm))
 	lowerCaseSearchTerm := strings.ToLower(searchTerm)
+	logger.Info("searching patients", zap.String("dentalPracticeID", dentalPracticeID))
 	var patients []PatientSearchResponseItem
 	response, err := p.client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:              aws.String(p.tableName),
@@ -85,7 +85,7 @@ func (p *PatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, s
 		},
 	})
 	if err != nil {
-		logger.Error("could not find matching patients", zap.String("searchTerm", lowerCaseSearchTerm), zap.String("err", err.Error()))
+		logger.Error("could not find matching patients", zap.Error(err))
 	} else {
 		if len(response.Items) == 0 {
 			return patients, nil
@@ -93,7 +93,7 @@ func (p *PatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, s
 
 		err = attributevalue.UnmarshalListOfMaps(response.Items, &patients)
 		if err != nil {
-			logger.Error("could not unmarshal response", zap.String("err", err.Error()))
+			logger.Error("could not unmarshal response", zap.Error(err))
 		}
 	}
 

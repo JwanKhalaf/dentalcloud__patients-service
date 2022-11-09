@@ -20,18 +20,20 @@ func GetPatientHandler(logger *zap.Logger, repository patients.PatientRepository
 
 		logger.Info("requested patient", zap.String("patientID", patientID))
 
+		logger = logger.With(zap.String("patientID", patientID))
+
 		w.Header().Set(contentTypeHeader, jsonContentType)
 
-		patient, err := repository.GetPatient(r.Context(), patientID)
+		patient, err := repository.GetPatient(logger, r.Context(), patientID)
 		if err != nil {
-			logger.Error("failed to get patient", zap.String("patientID", patientID), zap.String("err", err.Error()))
+			logger.Error("failed to get patient", zap.Error(err))
 			http.Error(w, "requested patient could not be found", http.StatusNotFound)
 			return
 		}
 
 		err = json.NewEncoder(w).Encode(patient)
 		if err != nil {
-			logger.Error("error in json marshal", zap.String("patientID", patientID), zap.String("err", err.Error()))
+			logger.Error("error in json marshal", zap.Error(err))
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -11,28 +11,32 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/jwankhalaf/dentalcloud__patients-service/api/patients"
+	"go.uber.org/zap"
 )
 
 type StubPatientStore struct {
-	getPatient     func(ctx context.Context, patientID string) (patients.Patient, error)
-	searchPatients func(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
+	getPatient     func(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error)
+	searchPatients func(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
 }
 
-func (s *StubPatientStore) GetPatient(ctx context.Context, patientID string) (patients.Patient, error) {
-	return s.getPatient(ctx, patientID)
+func (s *StubPatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error) {
+	return s.getPatient(logger, ctx, patientID)
 }
 
-func (s *StubPatientStore) SearchPatients(ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
-	return s.searchPatients(ctx, searchTerm)
+func (s *StubPatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+	return s.searchPatients(logger, ctx, searchTerm)
 }
 
 func TestSearchPatient(t *testing.T) {
+	// create the logger
+	logger, _ := zap.NewProduction()
+
 	t.Run("returns a bad request if endpoint is called without search query param", func(t *testing.T) {
 		var p = make([]patients.PatientSearchResponseItem, 0)
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			searchPatients: func(_ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+			searchPatients: func(_ *zap.Logger, _ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
 				return p, nil
 			},
 		}
@@ -44,7 +48,7 @@ func TestSearchPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get the handler
-		handler := SearchPatientsHandler(&patientStore)
+		handler := SearchPatientsHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
@@ -60,7 +64,7 @@ func TestSearchPatient(t *testing.T) {
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			searchPatients: func(_ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+			searchPatients: func(_ *zap.Logger, _ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
 				return p, nil
 			},
 		}
@@ -72,7 +76,7 @@ func TestSearchPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get the handler
-		handler := SearchPatientsHandler(&patientStore)
+		handler := SearchPatientsHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
@@ -93,7 +97,7 @@ func TestSearchPatient(t *testing.T) {
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			searchPatients: func(_ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+			searchPatients: func(_ *zap.Logger, _ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
 				if searchTerm != searchParam {
 					t.Errorf("%q was passed to SearchPatients() but the expected value was %q", searchTerm, searchParam)
 				}
@@ -109,7 +113,7 @@ func TestSearchPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get the handler
-		handler := SearchPatientsHandler(&patientStore)
+		handler := SearchPatientsHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
@@ -129,7 +133,7 @@ func TestSearchPatient(t *testing.T) {
 
 		// create the stub patient store
 		patientStore := StubPatientStore{
-			searchPatients: func(_ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
+			searchPatients: func(_ *zap.Logger, _ context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error) {
 				return expectedPatients, nil
 			},
 		}
@@ -141,7 +145,7 @@ func TestSearchPatient(t *testing.T) {
 		res := httptest.NewRecorder()
 
 		// get the handler
-		handler := SearchPatientsHandler(&patientStore)
+		handler := SearchPatientsHandler(logger, &patientStore)
 
 		// our handler satisfies http.handler, so we can call its serve http method
 		// directly and pass in our request and response recorder
