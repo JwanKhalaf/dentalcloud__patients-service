@@ -53,6 +53,19 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 		GoBuildFlags: &[]*string{jsii.String(`-ldflags "-s -w" -tags lambda.norpc`)},
 	}
 
+	// creating the aws lambda for creating a patient
+	createPatientHandler := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("CreatePatientFunction"), &awscdklambdagoalpha.GoFunctionProps{
+		Architecture: awslambda.Architecture_ARM_64(),
+		Entry:        jsii.String("../api/patients/create/lambda"),
+		Environment:  &map[string]*string{"DYNAMODB_TABLENAME": table.TableName()},
+		Bundling:     bundlingOptions,
+		MemorySize:   jsii.Number(1024),
+		Timeout:      awscdk.Duration_Millis(jsii.Number(15000)),
+	})
+
+	// grant dynamodb read write permissions to the create patient lambda
+	table.GrantReadWriteData(createPatientHandler)
+
 	// creating the aws lambda for getting a patient
 	getPatientHandler := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("GetPatientFunction"), &awscdklambdagoalpha.GoFunctionProps{
 		Architecture: awslambda.Architecture_ARM_64(),
@@ -66,7 +79,7 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 	// grant dynamodb read write permissions to the get patient lambda
 	table.GrantReadWriteData(getPatientHandler)
 
-	// creating the aws lambda for getting a patient
+	// creating the aws lambda for finding a patient
 	searchPatientsHandler := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("SearchPatientsFunction"), &awscdklambdagoalpha.GoFunctionProps{
 		Architecture: awslambda.Architecture_ARM_64(),
 		Entry:        jsii.String("../api/patients/search/lambda"),
@@ -76,13 +89,22 @@ func NewPatientsServiceAppStack(scope constructs.Construct, id string, props *Pa
 		Timeout:      awscdk.Duration_Millis(jsii.Number(15000)),
 	})
 
-	// grant dynamodb read write permissions to the get patient lambda
+	// grant dynamodb read write permissions to the search patients lambda
 	table.GrantReadWriteData(searchPatientsHandler)
 
 	// create a new http patientsApi gateway
 	patientsApi := awscdkapigatewayv2alpha.NewHttpApi(stack, jsii.String("PatientsApi"), &awscdkapigatewayv2alpha.HttpApiProps{})
 
-	// add route for getting patient
+	// add route for creating a patient
+	patientsApi.AddRoutes(&awscdkapigatewayv2alpha.AddRoutesOptions{
+		Path:    jsii.String("/patients"),
+		Methods: &[]awscdkapigatewayv2alpha.HttpMethod{awscdkapigatewayv2alpha.HttpMethod_POST},
+		Integration: awscdkapigatewayv2integrationsalpha.NewHttpLambdaIntegration(jsii.String("createPatientLambdaIntegration"), createPatientHandler, &awscdkapigatewayv2integrationsalpha.HttpLambdaIntegrationProps{
+			PayloadFormatVersion: awscdkapigatewayv2alpha.PayloadFormatVersion_VERSION_2_0(),
+		}),
+	})
+
+	// add route for getting a patient
 	patientsApi.AddRoutes(&awscdkapigatewayv2alpha.AddRoutesOptions{
 		Path:    jsii.String("/patients/{patient-id}"),
 		Methods: &[]awscdkapigatewayv2alpha.HttpMethod{awscdkapigatewayv2alpha.HttpMethod_GET},

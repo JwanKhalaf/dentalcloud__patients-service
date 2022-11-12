@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/jsii-runtime-go"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +23,7 @@ type PatientStore struct {
 }
 
 type PatientRepository interface {
+	CreatePatient(logger *zap.Logger, ctx context.Context, patient CreatePatientRequest) (CreatePatientResponse, error)
 	GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (Patient, error)
 	SearchPatients(logger *zap.Logger, ctx context.Context, searchTerm string) ([]PatientSearchResponseItem, error)
 }
@@ -42,6 +45,72 @@ func NewPatientStore(logger *zap.Logger) *PatientStore {
 		client:    dynamodb.NewFromConfig(cfg),
 		tableName: dynamodbTableName,
 	}
+}
+
+func (p *PatientStore) CreatePatient(logger *zap.Logger, ctx context.Context, patient CreatePatientRequest) (CreatePatientResponse, error) {
+	// generate the unique patient id
+	patient.PatientID = uuid.New().String()
+
+	item, err := attributevalue.MarshalMap(patient)
+	if err != nil {
+		logger.Error("could not marshal the create patient request for dynamodb", zap.Error(err))
+	}
+
+	partitionKey := patient.GetKey()["_pk"]
+	sortKey := patient.GetKey()["_sk"]
+	item["_pk"] = partitionKey
+	item["_sk"] = sortKey
+	item["et"] = &types.AttributeValueMemberS{Value: "patient"}
+	item["ca"] = &types.AttributeValueMemberS{Value: time.Now().Format(time.RFC3339)}
+	item["a"] = &types.AttributeValueMemberBOOL{Value: true}
+
+	_, err = p.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(p.tableName), Item: item,
+	})
+	if err != nil {
+		logger.Error("could not add new patient to dynamodb table", zap.Error(err))
+	}
+
+	sharedAttributesMap := map[string]types.AttributeValue{
+		"_pk": &types.AttributeValueMemberS{Value: "dp#c9ec3cfe-9f2c-4d68-aec6-9c6a43bf9aec"},
+		"pid": &types.AttributeValueMemberS{Value: patient.PatientID},
+		"fn":  &types.AttributeValueMemberS{Value: patient.FirstName},
+		"mn":  &types.AttributeValueMemberS{Value: patient.MiddleName},
+		"ln":  &types.AttributeValueMemberS{Value: patient.LastName},
+		"dob": &types.AttributeValueMemberS{Value: patient.DateOfBirth},
+		"e":   &types.AttributeValueMemberS{Value: patient.Email},
+		"mp":  &types.AttributeValueMemberS{Value: patient.MobilePhone},
+		"pc":  &types.AttributeValueMemberS{Value: patient.PostCode},
+		"et":  &types.AttributeValueMemberS{Value: "search-item"},
+	}
+
+	// for first name
+	sharedAttributesMap["_sk"] = &types.AttributeValueMemberS{Value: fmt.Sprintf("p#%v#fn", patient.PatientID)}
+	sharedAttributesMap["st"] = &types.AttributeValueMemberS{Value: strings.ToLower(patient.FirstName)}
+
+	_, err = p.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(p.tableName), Item: sharedAttributesMap,
+	})
+	if err != nil {
+		logger.Error("could not add first name for the name gsi", zap.Error(err))
+	}
+
+	// clear the first name attribute items
+	delete(sharedAttributesMap, "_sk")
+	delete(sharedAttributesMap, "st")
+
+	// for first name
+	sharedAttributesMap["_sk"] = &types.AttributeValueMemberS{Value: fmt.Sprintf("p#%v#ln", patient.PatientID)}
+	sharedAttributesMap["st"] = &types.AttributeValueMemberS{Value: strings.ToLower(patient.LastName)}
+
+	_, err = p.client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(p.tableName), Item: sharedAttributesMap,
+	})
+	if err != nil {
+		logger.Error("could not add last name for the name gsi", zap.Error(err))
+	}
+
+	return CreatePatientResponse{PatientID: patient.PatientID}, err
 }
 
 func (p *PatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (Patient, error) {
@@ -87,10 +156,6 @@ func (p *PatientStore) SearchPatients(logger *zap.Logger, ctx context.Context, s
 	if err != nil {
 		logger.Error("could not find matching patients", zap.Error(err))
 	} else {
-		if len(response.Items) == 0 {
-			return patients, nil
-		}
-
 		err = attributevalue.UnmarshalListOfMaps(response.Items, &patients)
 		if err != nil {
 			logger.Error("could not unmarshal response", zap.Error(err))

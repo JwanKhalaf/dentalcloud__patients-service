@@ -16,8 +16,13 @@ import (
 )
 
 type StubPatientStore struct {
+	createPatient  func(logger *zap.Logger, ctx context.Context, patient patients.CreatePatientRequest) (patients.CreatePatientResponse, error)
 	getPatient     func(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error)
 	searchPatients func(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
+}
+
+func (s *StubPatientStore) CreatePatient(logger *zap.Logger, ctx context.Context, patient patients.CreatePatientRequest) (patients.CreatePatientResponse, error) {
+	return s.createPatient(logger, ctx, patient)
 }
 
 func (s *StubPatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error) {
@@ -91,7 +96,7 @@ func TestGetPatient(t *testing.T) {
 		// directly and pass in our request and response recorder
 		handler.ServeHTTP(res, req)
 
-		// decode the json response into []tasks.Task
+		// decode the json response into patients.Patient
 		got := getPatientFromResponse(t, res.Body)
 
 		// assert status code is what we expect

@@ -15,6 +15,8 @@ require (
 	github.com/aws/constructs-go/constructs/v10 v10.1.137
 	github.com/aws/jsii-runtime-go v1.70.0
 	github.com/google/go-cmp v0.5.9
+	github.com/google/uuid v1.3.0
+	go.uber.org/zap v1.23.0
 )
 
 require (
@@ -38,7 +40,6 @@ require (
 	github.com/yuin/goldmark v1.4.13 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect

@@ -15,8 +15,13 @@ import (
 )
 
 type StubPatientStore struct {
+	createPatient  func(logger *zap.Logger, ctx context.Context, patient patients.CreatePatientRequest) (patients.CreatePatientResponse, error)
 	getPatient     func(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error)
 	searchPatients func(logger *zap.Logger, ctx context.Context, searchTerm string) ([]patients.PatientSearchResponseItem, error)
+}
+
+func (s *StubPatientStore) CreatePatient(logger *zap.Logger, ctx context.Context, patient patients.CreatePatientRequest) (patients.CreatePatientResponse, error) {
+	return s.createPatient(logger, ctx, patient)
 }
 
 func (s *StubPatientStore) GetPatient(logger *zap.Logger, ctx context.Context, patientID string) (patients.Patient, error) {
