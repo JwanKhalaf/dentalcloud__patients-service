@@ -12,7 +12,7 @@ import (
 	"github.com/aws/constructs-go/constructs/v10"
 )
 
-const stackName string = "DentalCloud--Patients-Service"
+const stackName string = "dentalcloud--patients-service"
 
 type PatientsServiceAppStackProps struct {
 	awscdk.StackProps
